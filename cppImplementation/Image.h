@@ -26,8 +26,13 @@ struct Image
     // Effects
     Image &darkenImage(const int percentage);
     Image &lightenImage(const int percentage);
+    Image &grayscale_avg();
+    Image &grayscale_lum();
 
     // Transformations
     Image &flipX();
     Image &flipY();
+    Image &rotate(bool opposite = false);
+    Image &rotateClockwise();
+    Image &rotateCounterClockwise();
 };

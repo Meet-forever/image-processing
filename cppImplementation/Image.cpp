@@ -104,6 +104,36 @@ Image &Image::lightenImage(const int percentage)
     return *this;
 }
 
+Image &Image::grayscale_avg()
+{
+    if (channels < 3)
+    {
+        printf("Image %p has less than 3 channel", this);
+        return *this;
+    }
+    for (int i = 0; i < size; i += channels)
+    {
+        int gray = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        memset(data + i, gray, 3 * sizeof(uint8_t));
+    }
+    return *this;
+}
+
+Image &Image::grayscale_lum()
+{
+    if (channels < 3)
+    {
+        printf("Image %p has less than 3 channel", this);
+        return *this;
+    }
+    for (int i = 0; i < size; i += channels)
+    {
+        int gray = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+        memset(data + i, gray, 3 * sizeof(uint8_t));
+    }
+    return *this;
+}
+
 // Transformations
 Image &Image::flipX()
 {
@@ -136,5 +166,87 @@ Image &Image::flipY()
             data[i * N + j] ^= data[(M - i - 1) * N + j];
         }
     }
+    return *this;
+}
+
+// Refer to Clock and Counter Clockwise functions to understand intuition behind opposite
+/*
+opposite = false => Clockwise rotation
+opposite = true => Counter Clockwise rotation
+*/
+Image &Image::rotate(bool opposite /*=false*/)
+{
+    uint8_t temp_data[size];
+    uint8_t temp;
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; ++j)
+        {
+            for (int k = 0; k < channels; ++k)
+            {
+                temp = temp_data[(j * h + (h - i - 1) * (!opposite) + i * opposite) * channels + k];
+                temp_data[(j * h + (h - i - 1) * (!opposite) + i * opposite) * channels + k] = data[(i * w + (w - 1 - j) * opposite + j * (!opposite)) * channels + k];
+                data[(i * w + (w - 1 - j) * opposite + j * (!opposite)) * channels + k] = temp;
+            }
+        }
+    }
+    for (int i = 0; i < size; ++i)
+    {
+        data[i] = temp_data[i];
+    }
+    w ^= h;
+    h ^= w;
+    w ^= h;
+    return *this;
+}
+
+Image &Image::rotateClockwise()
+{
+    uint8_t temp_data[size];
+    uint8_t temp;
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; ++j)
+        {
+            for (int k = 0; k < channels; ++k)
+            {
+                temp = temp_data[(j * h + h - i - 1) * channels + k];
+                temp_data[(j * h + h - i - 1) * channels + k] = data[(i * w + j) * channels + k];
+                data[(i * w + j) * channels + k] = temp;
+            }
+        }
+    }
+    for(int i = 0; i < size; ++i){
+        data[i] = temp_data[i];
+    }
+    w ^= h;
+    h ^= w;
+    w ^= h;
+    return *this;
+}
+
+Image &Image::rotateCounterClockwise()
+{
+    uint8_t temp_data[size];
+    uint8_t temp;
+    for (int i = 0; i < h; ++i)
+    {
+        for (int j = 0; j < w; ++j)
+        {
+            for (int k = 0; k < channels; ++k)
+            {
+                temp = temp_data[(j * h + i) * channels + k];
+                temp_data[(j * h + i) * channels + k] = data[(i * w + w - 1 - j) * channels + k];
+                data[(i * w + w - 1 - j) * channels + k] = temp;
+            }
+        }
+    }
+    for (int i = 0; i < size; ++i)
+    {
+        data[i] = temp_data[i];
+    }
+    w ^= h;
+    h ^= w;
+    w ^= h;
     return *this;
 }
