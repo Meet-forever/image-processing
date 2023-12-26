@@ -176,7 +176,7 @@ opposite = true => Counter Clockwise rotation
 */
 Image &Image::rotate(bool opposite /*=false*/)
 {
-    uint8_t temp_data[size];
+    uint8_t *temp_data = new uint8_t[size];
     uint8_t temp;
     for (int i = 0; i < h; ++i)
     {
@@ -194,6 +194,7 @@ Image &Image::rotate(bool opposite /*=false*/)
     {
         data[i] = temp_data[i];
     }
+    delete[] temp_data;
     w ^= h;
     h ^= w;
     w ^= h;
@@ -202,7 +203,7 @@ Image &Image::rotate(bool opposite /*=false*/)
 
 Image &Image::rotateClockwise()
 {
-    uint8_t temp_data[size];
+    uint8_t *temp_data = new uint8_t[size];
     uint8_t temp;
     for (int i = 0; i < h; ++i)
     {
@@ -216,9 +217,11 @@ Image &Image::rotateClockwise()
             }
         }
     }
-    for(int i = 0; i < size; ++i){
+    for (int i = 0; i < size; ++i)
+    {
         data[i] = temp_data[i];
     }
+    delete[] temp_data;
     w ^= h;
     h ^= w;
     w ^= h;
@@ -227,7 +230,7 @@ Image &Image::rotateClockwise()
 
 Image &Image::rotateCounterClockwise()
 {
-    uint8_t temp_data[size];
+    uint8_t *temp_data = new uint8_t[size];
     uint8_t temp;
     for (int i = 0; i < h; ++i)
     {
@@ -245,8 +248,44 @@ Image &Image::rotateCounterClockwise()
     {
         data[i] = temp_data[i];
     }
+    delete[] temp_data;
     w ^= h;
     h ^= w;
     w ^= h;
+    return *this;
+}
+
+Image &Image::conv_0_border(double ker[], uint32_t ker_w, uint32_t ker_h, uint8_t channel)
+{
+    uint8_t *new_data = new uint8_t[w * h];
+    uint32_t cr = ker_h / 2, cc = ker_w / 2;
+    uint64_t center = cr * ker_w + cc;
+    for (uint64_t i = channel; i < size; i += channels)
+    {
+        double c = 0;
+        for (long j = -((long)cr); j < (long)(ker_h - cr); ++j)
+        {
+            long row = ((long)i / channels) / w - j;
+            if (row < 0 || row > h - 1)
+            {
+                continue;
+            }
+            for (long k = -((long)cc); k < (long)(ker_w - cc); ++k)
+            {
+                long col = ((long)i / channels) % w - k;
+                if (col < 0 || col > w - 1)
+                {
+                    continue;
+                }
+                c += ker[center + j * (long)ker_w + k] * (double)data[(row * w + col) * channels + channel];
+            }
+        }
+        new_data[i / channels] = (uint8_t)(round(c));
+    }
+    for (uint64_t i = channel; i < size; i += channels)
+    {
+        data[i] = new_data[i / channels];
+    }
+    delete[] new_data;
     return *this;
 }
