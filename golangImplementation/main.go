@@ -15,8 +15,31 @@ const CHANNELS = 4
 
 func main() {
 	// img := loadImage("test.png")
-	// grayScale(img)
+
+	// Gray Scaling
+	// grayScaleLumi(img)
 	// fastGrayScale(img)
+
+	// Convolution
+	// fastGrayScaleLumi(img)
+	// edgex := []float64{
+	// 	-1, -2, -1,
+	// 	0, 0, 0,
+	// 	1, 2, 1}
+
+	// conv_0_border(img, edgex, 3, 3, 0)
+	// conv_0_border(img, edgex, 3, 3, 1)
+	// conv_0_border(img, edgex, 3, 3, 2)
+
+	// edgey := []float64{
+	// 	-1, 0, 1,
+	// 	-2, 0, 2,
+	// 	-1, 0, 1}
+
+	// conv_0_border(img, edgey, 3, 3, 0)
+	// conv_0_border(img, edgey, 3, 3, 1)
+	// conv_0_border(img, edgey, 3, 3, 2)
+
 	// saveImage("temp.png", img)
 }
 
@@ -83,6 +106,7 @@ func updateGrayPixelChunk(arr []uint8, start int, end int, factor factorCord, wg
 	}
 }
 
+// Concurrent gray scaling (average)
 func fastGrayScale(img *image.RGBA) {
 	rect := img.Rect
 	size := rect.Dx() * rect.Dy() * CHANNELS
@@ -96,6 +120,7 @@ func fastGrayScale(img *image.RGBA) {
 	wg.Wait()
 }
 
+// Concurrent gray scaling (lumination)
 func fastGrayScaleLumi(img *image.RGBA) {
 	rect := img.Rect
 	size := rect.Dx() * rect.Dy() * CHANNELS
@@ -107,4 +132,34 @@ func fastGrayScaleLumi(img *image.RGBA) {
 		go updateGrayPixelChunk(img.Pix, i, int(math.Min(float64(i+chunk), float64(size))), factorCord{0.2126, 0.7152, 0.0722}, wg)
 	}
 	wg.Wait()
+}
+
+// Convolution Function
+func conv_0_border(img *image.RGBA, ker []float64, ker_w uint32, ker_h uint32, channel uint8) {
+	size := img.Bounds().Dx() * img.Bounds().Dy() * CHANNELS
+	w := int(img.Bounds().Dx())
+	h := int(img.Bounds().Dy())
+	new_data := make([]uint8, size)
+	cr, cc := ker_h/2, ker_w/2
+	center := cr*ker_w + cc
+	for i := uint64(channel); i < uint64(size); i += CHANNELS {
+		var c float64 = 0
+		for j := -int64(cr); j < int64(ker_h)-int64(cr); j += 1 {
+			var row int64 = (int64(i) / CHANNELS / int64(w)) - j
+			if row < 0 || row > int64(h)-1 {
+				continue
+			}
+			for k := -int64(cc); k < int64(ker_w)-int64(cc); k += 1 {
+				var col int64 = int64(i)/CHANNELS%int64(w) - k
+				if col < 0 || col > int64(w)-1 {
+					continue
+				}
+				c += ker[int64(center)+j*int64(ker_w)+k] * float64(img.Pix[(row*int64(w)+col)*CHANNELS+int64(channel)])
+			}
+		}
+		new_data[i/CHANNELS] = uint8(c)
+	}
+	for i := uint64(channel); i < uint64(size); i += CHANNELS {
+		img.Pix[i] = new_data[i/CHANNELS]
+	}
 }
